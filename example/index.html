@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>example</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="./phaser.min.js"></script>
+</head>
+
+<body>
+    <div id="test"></div>
+    <script>
+        let game = new Phaser.Game(800, 600, Phaser.CANVAS, 'test', {
+            preload: preload,
+            create: create,
+            update: update
+        });
+        // game是创建的一个游戏画布对象
+        function preload() {
+            game.load.image('star', 'assets/star.png'); // 预加载图片
+            game.load.image('sky', 'assets/sky.png');
+            game.load.image('ground', 'assets/platform.png');
+            game.load.spritesheet('dude', 'assets/dude.png', 32, 48); // 预加载一个精灵表单,spritesheet(精灵表单)
+        }
+
+        let platforms; // 大地图片组
+        let player;
+        let cursors;
+        let stars;
+        let score = 0;
+        let scoreText;
+
+        function create() {
+            game.physics.startSystem(Phaser.Physics.ARCADE); // 开启游戏场景的物理引擎，括号内是Phaser内置的最简单的一种物理引擎
+            game.add.sprite(0, 0, 'sky'); // 添加sprite时，有一个层级的关系
+
+            platforms = game.add.group(); // 创建一个组
+            platforms.enableBody = true; // 启动组的物理引擎
+
+            let groundOne = platforms.create(-150, 250, 'ground'); // 添加的精灵前面两位是坐标，后面是预加载名
+            groundOne.body.immovable = true; // 不让groundOne移动
+
+            let groundTwo = platforms.create(400, 400, 'ground'); // game.world.height是游戏画布的全局高度
+            groundTwo.body.immovable = true; // 不让groundTwo移动
+
+            let ground = platforms.create(0, game.world.height - 64, 'ground'); // sprite(x,y,'预加载名')方法返回这个精灵对象
+            ground.scale.setTo(2, 2); // scale是ground在画布中的比例,里面有一个setTo(x,y)方法，来设置比例
+            // game.physics.arcade.enable(ground) // 给ground开启一个物理属性
+            ground.body.immovable = true; // 不让ground移动
+
+            //game.add.sprite(0, 0, 'star'); //添加一个精灵
+
+            player = game.add.sprite(32, game.world.height - 150, 'dude');
+            game.physics.arcade.enable(player) // 给player开启一个物理属性
+            player.body.gravity.y = 300; // player里的body属性有一个gravity（重力）,这代码的意思是给player身上的y方向添加一个重力属性300,300指重力加速度
+            player.body.collideWorldBounds = true; // 让player在画布的范围掉落,collide(碰撞)Bound(范围、界限)
+            player.animations.add('left', [0, 1, 2, 3], 10, true); // add('运动名'，[帧]，每隔10ms播放，是否循环)
+            player.animations.add('right', [5, 6, 7, 8], 10, true); // add('运动名'，[帧]，每隔10ms播放，是否循环)
+
+            stars = game.add.group();
+            stars.enableBody = true;
+            for (let i = 0; i < 12; i++) {
+                let star = stars.create(i * 70, 0, 'star');
+                star.body.gravity.y = 300; // 给star加重力
+                star.body.bounce.y = 0.7 + Math.random() * 0.2; // 0.7-0.9的弹性系数
+            }
+
+            cursors = game.input.keyboard.createCursorKeys(); // 给左右方向键加键盘事件
+
+            // text(x,y,'初始文本',{对这个文本的css描述(类似于canvas)})
+            scoreText = game.add.text(16, 16, 'Score: 0', {
+                fontSize: '32px',
+                fill: '#000'
+            })
+        }
+
+        function update() {
+            game.physics.arcade.collide(player, platforms); // 碰撞检测
+            game.physics.arcade.collide(stars, platforms);
+
+            game.physics.arcade.overlap(player, stars, collectStar, null, this); // overlap也是碰撞检测，collectStar是回调函数
+
+            if (cursors.left.isDown) { // 给左右键按下时添加运动
+                player.body.velocity.x = -150; // player在x方向上的速度为-150
+                player.animations.play('left'); // 启动左边运动
+            } else if (cursors.right.isDown) {
+                player.body.velocity.x = 150; // player在x方向上的速度为150
+                player.animations.play('right'); // 启动左边运动
+            } else {
+                player.body.velocity.x = 0; // player在x方向上的速度为0
+                player.frame = 4; // frame（画面）,使换面停在第四帧
+            }
+            if (cursors.up.isDown && player.body.touching.down) { // 当up按下时让小人儿跳
+                player.body.velocity.y = -350; // player在y方向上的速度为-150
+            }
+        }
+
+        function collectStar(player, star) {
+            star.kill(); // 星星消失
+            score += 10; // 增加分数
+            scoreText.text = 'Score: ' + score;
+        }
+    </script>
+</body>
+
+</html>
