@@ -1,8 +1,24 @@
-let game = new Phaser.Game(240, 400, Phaser.CANVAS, 'game')
+let game = new Phaser.Game(240, 400, Phaser.CANVAS, 'game');
 let upKey;
 game.MyStates = {}; // 创建一个场景组
-game.MyStates.load = {
+
+game.MyStates.boot = { // boot 引导     进度条引入场景
     preload: function() {
+        game.load.image('preloader', './assets/preloader.gif');
+        if (!game.device.desktop) { // 游戏设备不是PC端
+            game.scale.scaleMode = Phaser.ScaleManager.EXACT_FIT; // 屏幕适配
+        }
+    },
+    create: function() {
+        game.state.start('load');
+    }
+}
+
+game.MyStates.load = { // 加载资源场景
+    preload: function() {
+        let preloadSprite = game.add.sprite(game.width / 2 - 220 / 2, game.height / 2 - 19 / 2, 'preloader'); // 添加一个进度条精灵
+        game.load.setPreloadSprite(preloadSprite); // 设置预加载精灵
+
         game.load.image('bg', './assets/bg.jpg');
         game.load.image('copyright', './assets/copyright.png');
         game.load.spritesheet('myplane', './assets/myplane.png', 40, 40, 4); // 最后三个变量的意思：width，height，总帧数（总共几张图）
@@ -33,12 +49,32 @@ game.MyStates.load = {
         game.state.start('start');
     }
 }
-game.MyStates.start = {
+game.MyStates.start = { // 开始场景
     create: function() {
-        game.add.sprite(0, 0, 'bg');
+        game.add.image(0, 0, 'bg');
+        game.add.image(12, game.height - 16, 'copyright');
+        let myplane = game.add.sprite(100, 100, 'myplane'); // 添加飞机精灵
+        myplane.animations.add('fly'); // 添加飞机动画
+        myplane.animations.play('fly', 10, true); // 循环10ms播放一次飞机动画
+        game.add.button(70, 200, 'startbutton', this.onStartClick, this, 1, 1, 0); // button(x,y,key,callback,callbackContext,移入停在哪一帧，移出，按下，抬起)
+    },
+    onStartClick: function() {
+        game.state.start('play');
     }
 }
-
+game.MyStates.play = { // 开始场景
+    create: function() {
+        let bg = game.add.tileSprite(0, 0, game.width, game.height, 'bg'); //瓦片精灵 tileSprite(x,y,平铺宽，平铺高，key);
+        bg.autoScroll(0, 20); // autoScroll(v/s,v/s) 自动滚动(每秒滚动速度)
+        let myplane = game.add.sprite(100, 100, 'myplane'); // 添加飞机精灵
+        myplane.animations.add('fly'); // 添加飞机动画
+        myplane.animations.play('fly', 10, true); // 循环10ms播放一次飞机动画
+        game.add.tween(myplane).to({ y: game.height - 40 }, 1000, Phaser.Easing.Linear.None, true);
+        // tween(key).to({y:运动到的位置},持续时间,运动形式（匀速运动）,autoStart);
+    }
+}
+game.state.add('boot', game.MyStates.boot); // 添加开头引入场景 
 game.state.add('load', game.MyStates.load); // 添加加载场景 
 game.state.add('start', game.MyStates.start); // 添加开始场景
-game.state.start('load'); // 开启加载场景
+game.state.add('play', game.MyStates.play); // 添加play场景
+game.state.start('boot'); // 开启引导场景
